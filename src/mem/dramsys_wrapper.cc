@@ -89,6 +89,24 @@ tlm::tlm_sync_enum DRAMSysWrapper::nb_transport_fw(
     // Subtract base address offset
     payload.set_address(payload.get_address() - range.start());
 
+    if (payload.get_address() < 0x4000 && payload.is_write() && phase == tlm::BEGIN_REQ)
+    {
+        char *msg = reinterpret_cast<char*>(payload.get_data_ptr());
+        for (std::size_t i = 0; i < payload.get_data_length(); i++)
+        {
+            if (msg[i] != '\0')
+            {
+                message.push_back(msg[i]);
+            }
+            else
+            {
+                std::cout << message << std::endl;
+                message.clear();
+                break;
+            }
+        }
+    }
+
     return iSocket->nb_transport_fw(payload, phase, fwDelay);
 }
 

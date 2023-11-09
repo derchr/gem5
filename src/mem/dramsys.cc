@@ -41,7 +41,10 @@ DRAMSys::DRAMSys(Params const& params) :
                                         params.resource_directory)),
     dramSysWrapper(
         params.name.c_str(), config, params.recordable, params.range)
+    // checker("checker")
 {
+    // checker.initiator_socket.bind(dramSysWrapper.tSocket);
+
     dramSysWrapper.dramsys->registerIdleCallback(
         [this]
         {

@@ -33,6 +33,7 @@
 #include "mem/abstract_mem.hh"
 #include "mem/dramsys_wrapper.hh"
 #include "params/DRAMSys.hh"
+// #include "tlm2_base_protocol_checker.h"
 
 namespace gem5
 {
@@ -58,6 +59,7 @@ class DRAMSys : public AbstractMemory
   private:
     ::DRAMSys::Config::Configuration config;
     DRAMSysWrapper dramSysWrapper;
+    // tlm_utils::tlm2_base_protocol_checker<> checker;
 };
 
 } // namespace memory
