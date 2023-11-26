@@ -8,7 +8,7 @@ from gem5.resources.resource import BinaryResource
 from gem5.simulate.simulator import Simulator
 from m5.objects import VExpress_GEM5_Foundation
 from gem5.components.boards.arm_baremetal_board import ArmBareMetalBoard
-from gem5.components.memory import DRAMSysDDR3_1600
+from gem5.components.memory import DRAMSysHBM2
 from gem5.components.processors.cpu_types import CPUTypes
 from gem5.components.processors.simple_processor import SimpleProcessor
 
@@ -24,7 +24,7 @@ cache_hierarchy = PrivateL1PrivateL2CacheHierarchy(
 )
 # cache_hierarchy = NoCache()
 
-memory = DRAMSysDDR3_1600(recordable=True)
+memory = DRAMSysHBM2(recordable=True)
 processor = SimpleProcessor(cpu_type=CPUTypes.O3, num_cores=1, isa=ISA.ARM)
 release = ArmDefaultRelease()
 platform = VExpress_GEM5_Foundation()
@@ -38,12 +38,19 @@ board = ArmBareMetalBoard(
     platform=platform,
 )
 
+# HBM2 requires line size of 32 Bytes
+board.cache_line_size = 32
+
+for core in processor.get_cores():
+    core.core.fetchBufferSize = 32
+
+# Address of memory-mapped m5ops
 board.m5ops_base = 0x10010000
 
 workload = CustomWorkload(
     "set_baremetal_workload",
     {
-        "kernel": BinaryResource("aarch64"),
+        "kernel": BinaryResource("pim-os"),
     },
 )
 board.set_workload(workload)

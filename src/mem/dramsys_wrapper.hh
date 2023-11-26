@@ -84,7 +84,6 @@ class DRAMSysWrapper : public sc_core::sc_module
     tlm_utils::simple_target_socket<DRAMSysWrapper> tSocket;
 
     std::shared_ptr<::DRAMSys::DRAMSys> dramsys;
-    std::string message;
 
     AddrRange range;
 };
