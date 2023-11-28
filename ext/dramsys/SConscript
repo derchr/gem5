@@ -62,6 +62,9 @@ subprocess.run(
 env.Append(LIBS="DRAMSys_libdramsys")
 env.Append(LIBPATH=Dir("./DRAMSys/src/libdramsys").abspath)
 
+env.Append(LIBS=["libpim_vm", "libpim-vm-cxx"])
+env.Append(LIBPATH=Dir("./DRAMSys").abspath)
+
 env.Append(LIBS="DRAMSys_Configuration")
 env.Append(LIBPATH=Dir("./DRAMSys/src/configuration").abspath)
 

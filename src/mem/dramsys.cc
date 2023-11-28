@@ -27,6 +27,8 @@
  */
 
 #include "dramsys.hh"
+#include "DRAMSys/common/Deserialize.h"
+#include "DRAMSys/common/Serialize.h"
 
 namespace gem5
 {
