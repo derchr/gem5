@@ -183,6 +183,6 @@ class DRAMSysHBM2(DRAMSysMem):
             configuration=(
                 DEFAULT_DRAMSYS_DIRECTORY / "configs/hbm2-example.json"
             ).as_posix(),
-            size="1GB",
+            size="2GB",
             recordable=recordable,
         )
