@@ -50,7 +50,7 @@ subprocess.run(
         "-DCMAKE_BUILD_TYPE=Release",
         f"-DSCONS_SOURCE_DIR:STRING={scons_root}",
         "-DDRAMSYS_BUILD_CLI=OFF",
-        "-DDRAMSYS_SHARED_PIM_UNITS=OFF"
+        "-DDRAMSYS_SHARED_PIM_UNITS=ON"
     ],
     check=True
 )

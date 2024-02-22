@@ -22,8 +22,6 @@ from gem5.components.cachehierarchies.classic.no_cache import NoCache
 cache_hierarchy = PrivateL1PrivateL2CacheHierarchy(
     l1d_size="16kB", l1i_size="16kB", l2_size="256kB"
 )
-# cache_hierarchy = NoCache()
-
 memory = DRAMSysHBM2(recordable=True)
 processor = SimpleProcessor(cpu_type=CPUTypes.O3, num_cores=1, isa=ISA.ARM)
 release = ArmDefaultRelease()
@@ -50,7 +48,7 @@ board.m5ops_base = 0x10010000
 workload = CustomWorkload(
     "set_baremetal_workload",
     {
-        "kernel": BinaryResource("pim-os"),
+        "kernel": BinaryResource("kernels/gemv"),
     },
 )
 board.set_workload(workload)
