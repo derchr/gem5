@@ -4,7 +4,10 @@ from pathlib import Path
 @dataclass(frozen=True)
 class Configuration:
     name: str
-    workload: Path
+    workload: str
+    executable: Path
+    pim: bool
+    level: str
     frequency: str = "3GHz"
 
 @dataclass(frozen=True)

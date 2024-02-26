@@ -3,6 +3,7 @@ import csv
 import copy
 import dataclasses
 import json
+import pandas as pd
 
 from threading import Thread
 from pathlib import Path
@@ -35,20 +36,15 @@ class Gem5Thread(Thread):
             ],
             capture_output=True,
         )
-        # print(out.stderr)
-        # print(out.stdout)
+
         output = out.stdout.splitlines()[-1]
         self.statistics = Statistics(**json.loads(output))
 
 
-workload_directory = Path("kernels")
+workload_base_directory = Path("kernels")
+workload_sub_directory = Path("aarch64-unknown-none/release")
 
 workloads = [
-    "classic_vadd",
-    "classic_vmul",
-    "classic_haxpy",
-    "classic_gemv",
-    # "classic_gemv_layers",
     "vadd",
     "vmul",
     "haxpy",
@@ -59,10 +55,34 @@ workloads = [
 configurations: list[Configuration] = []
 
 for frequency in ["3GHz", "100GHz"]:
-    for workload in workloads:
-        configurations.append(
-            Configuration(workload + "_" + frequency, (workload_directory / workload).as_posix(), frequency)
-        )
+    for level in ["X1", "X2", "X3", "X4"]:        
+        for pim in [False, True]:
+            for workload in workloads:
+                if workload == "gemv_layers" and level != "X4":
+                    continue
+                
+                executable = workload
+
+                if pim:
+                    executable = f"classic_{workload}"                
+
+                executable = (
+                    workload_base_directory
+                    / level
+                    / workload_sub_directory
+                    / executable
+                )
+
+                configurations.append(
+                    Configuration(
+                        f"{workload}_{level}_{frequency}",
+                        workload,
+                        executable.as_posix(),
+                        pim,
+                        level,
+                        frequency,
+                    )
+                )
 
 threads: list[Gem5Thread] = []
 
@@ -71,6 +91,13 @@ for configuration in configurations:
     thread.start()
     threads.append(thread)
 
+results: list[dict] = []
+
 for thread in threads:
     thread.join()
-    print(thread.configuration, thread.statistics)
+
+    result = dataclasses.asdict(thread.configuration) | dataclasses.asdict(thread.statistics)
+    results.append(result)
+
+dataframe = pd.DataFrame(results)
+dataframe.to_csv("pim_results.csv", index=False)

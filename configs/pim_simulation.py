@@ -57,7 +57,7 @@ for core in processor.get_cores():
 workload = CustomWorkload(
     "set_baremetal_workload",
     {
-        "kernel": BinaryResource(configuration.workload),
+        "kernel": BinaryResource(configuration.executable),
     },
 )
 board.set_workload(workload)
