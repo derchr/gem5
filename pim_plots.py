@@ -1,35 +1,35 @@
 import matplotlib.pyplot as plt
+import seaborn as sns
 import pandas as pd
 import numpy as np
 
 df = pd.read_csv("pim_results.csv")
 
-frequency_filter = df["frequency"] == "3GHz"
-
 workloads = df["workload"].unique()
 
-fig, ax = plt.subplots()
+sns.set_theme()
 
-width = 0.25
-index = 0
+def calc_speedup(x):
+    return x.iat[0] / x.iat[1]
 
-# for workload in workloads:
-for level in df["level"].unique():
-    level_filter = df["level"] == level
+for workload in df["workload"].unique():
+    workload_filter = df["workload"] == workload
 
-    for pim in [False, True]:
-        workload_filter = df["workload"] == "vadd"
+    filtered_df = df[workload_filter]
+    preprocessed_df = filtered_df.groupby(["workload", "level", "frequency"], as_index=False).agg({"ticks": calc_speedup}).rename(columns={"ticks":"speedup"})
 
-        filtered_df = df[level_filter & workload_filter & frequency_filter]
-        print(filtered_df)
+    # print(preprocessed_df)
+    # preprocessed_df.to_csv("plot.csv", index=False)
 
-        x = np.arange(len(filtered_df))
+    g = sns.catplot(
+        data=preprocessed_df, kind="bar",
+        x="level", y="speedup", hue="frequency",
+        palette="dark", alpha=.6, height=6
+    )
 
-        offset = 6*width * index
-        print(x+offset)
-        bars = ax.bar(x + offset, "ticks", width, data=filtered_df, label=level)
-        # ax.bar_label(bars, padding=2)
-        index += 1
+    g.despine(left=True)
+    g.set_axis_labels("", "Speedup")
+    g.set(title=workload)
+    g.legend.set_title("")
 
-ax.legend(loc="upper left")
 plt.show()

@@ -6,8 +6,8 @@ class Configuration:
     name: str
     workload: str
     executable: Path
-    pim: bool
     level: str
+    pim: bool
     frequency: str = "3GHz"
 
 @dataclass(frozen=True)

@@ -52,18 +52,23 @@ workloads = [
     # "gemv_layers",
 ]
 
+systems = [
+    "HBM",
+    "PIM-HBM",
+]
+
 configurations: list[Configuration] = []
 
 for frequency in ["3GHz", "100GHz"]:
     for level in ["X1", "X2", "X3", "X4"]:        
-        for pim in [False, True]:
+        for system in systems:
             for workload in workloads:
                 if workload == "gemv_layers" and level != "X4":
                     continue
                 
                 executable = workload
 
-                if pim:
+                if system == "HBM":
                     executable = f"classic_{workload}"                
 
                 executable = (
@@ -78,8 +83,8 @@ for frequency in ["3GHz", "100GHz"]:
                         f"{workload}_{level}_{frequency}",
                         workload,
                         executable.as_posix(),
-                        pim,
                         level,
+                        system == "PIM-HBM",
                         frequency,
                     )
                 )
