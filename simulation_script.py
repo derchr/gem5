@@ -49,7 +49,7 @@ workloads = [
     "vmul",
     "haxpy",
     "gemv",
-    # "gemv_layers",
+    "gemv_layers",
 ]
 
 systems = [
@@ -60,12 +60,9 @@ systems = [
 configurations: list[Configuration] = []
 
 for frequency in ["3GHz", "100GHz"]:
-    for level in ["X1", "X2", "X3", "X4"]:        
+    for level in ["X1", "X2", "X3", "X4"]:
         for system in systems:
-            for workload in workloads:
-                if workload == "gemv_layers" and level != "X4":
-                    continue
-                
+            for workload in workloads:                
                 executable = workload
 
                 if system == "HBM":
