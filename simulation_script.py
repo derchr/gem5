@@ -1,13 +1,13 @@
 import subprocess
-import csv
-import copy
 import dataclasses
 import json
 import pandas as pd
 
+from tqdm import tqdm
+from dataclasses import dataclass
 from threading import Thread
+from multiprocessing.pool import ThreadPool
 from pathlib import Path
-from typing import Dict
 from configs.pim_config import Configuration, Statistics
 
 gem5 = Path("build/ARM/gem5.opt")
@@ -15,31 +15,30 @@ out_dir_base = Path("pim_out")
 pim_simulation = Path("configs/pim_simulation.py")
 
 
-class Gem5Thread(Thread):
-    def __init__(self, configuration: Configuration) -> None:
-        super().__init__()
-        self.configuration = configuration
+@dataclass
+class WorkItem:
+    configuration: Configuration
+    statistics: Statistics | None = None
 
-    def run(self):
-        serialized_configuration = json.dumps(
-            dataclasses.asdict(self.configuration)
-        )
+def run_gem5_process(work_item: WorkItem):
+    serialized_configuration = json.dumps(
+        dataclasses.asdict(work_item.configuration)
+    )
 
-        out_dir = out_dir_base / configuration.name
+    out_dir = out_dir_base / work_item.configuration.name
 
-        out = subprocess.run(
-            [
-                gem5,
-                "-d" + out_dir.as_posix(),
-                pim_simulation,
-                serialized_configuration,
-            ],
-            capture_output=True,
-        )
+    out = subprocess.run(
+        [
+            gem5,
+            "-d" + out_dir.as_posix(),
+            pim_simulation,
+            serialized_configuration,
+        ],
+        capture_output=True,
+    )
 
-        output = out.stdout.splitlines()[-1]
-        self.statistics = Statistics(**json.loads(output))
-
+    output = out.stdout.splitlines()[-1]
+    work_item.statistics = Statistics(**json.loads(output))
 
 workload_base_directory = Path("kernels")
 workload_sub_directory = Path("aarch64-unknown-none/release")
@@ -60,7 +59,9 @@ systems = [
 configurations: list[Configuration] = []
 
 for frequency in ["3GHz", "100GHz"]:
+# for frequency in ["100GHz"]:
     for level in ["X1", "X2", "X3", "X4"]:
+    # for level in ["X3"]:
         for system in systems:
             for workload in workloads:                
                 executable = workload
@@ -77,28 +78,26 @@ for frequency in ["3GHz", "100GHz"]:
 
                 configurations.append(
                     Configuration(
-                        f"{workload}_{level}_{frequency}",
+                        f"{workload}_{level}_{system}_{frequency}",
                         workload,
                         executable.as_posix(),
                         level,
-                        system == "PIM-HBM",
+                        system,
                         frequency,
                     )
                 )
 
-threads: list[Gem5Thread] = []
+work_items = [WorkItem(configuration) for configuration in configurations]
 
-for configuration in configurations:
-    thread = Gem5Thread(configuration)
-    thread.start()
-    threads.append(thread)
+with ThreadPool() as pool:
+    for _ in tqdm(pool.imap_unordered(run_gem5_process, work_items), total=len(work_items)):
+        pass
+
 
 results: list[dict] = []
 
-for thread in threads:
-    thread.join()
-
-    result = dataclasses.asdict(thread.configuration) | dataclasses.asdict(thread.statistics)
+for work_item in work_items:
+    result = dataclasses.asdict(work_item.configuration) | dataclasses.asdict(work_item.statistics)
     results.append(result)
 
 dataframe = pd.DataFrame(results)

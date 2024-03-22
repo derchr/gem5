@@ -1,48 +1,64 @@
-import matplotlib.pyplot as plt
+import polars as pl
 import seaborn as sns
-import pandas as pd
-import numpy as np
+import matplotlib.pyplot as plt
+from datetime import datetime
 
 from pathlib import Path
 
-df = pd.read_csv("pim_results.csv")
+out_directory = Path("pim_plots_out")
 
-sns.set_theme()
+df = pl.read_csv("pim_results.csv")
 
-def calc_speedup(x):
-    return x.iat[0] / x.iat[1]
+workload_sets = {
+    "vector": ["vadd", "vmul", "haxpy"],
+    "matrix": ["gemv", "dnn"],
+}
 
-workload_sets = [["vadd", "vmul", "haxpy"], ["gemv", "gemv_layers"]]
+workload_mapping = {
+    "gemv_layers": "dnn",
+}
 
-for workload_set in workload_sets:
-    workload_filter = df["workload"].isin(workload_set)
+system_mapping = {
+    "HBM": "hbm",
+    "PIM-HBM": "pim"
+}
 
-    for frequency in df["frequency"].unique():
-        frequency_filter = df["frequency"] == frequency
+def calc_speedup(tick_list):
+    return tick_list[0] / tick_list[1]
 
-        filtered_df = df[workload_filter & frequency_filter]
-        print(filtered_df)
-        preprocessed_df = filtered_df.groupby(["workload", "level", "frequency"], as_index=False).agg({"ticks": calc_speedup}).rename(columns={"ticks":"speedup"})
 
-        print(preprocessed_df)
-        # preprocessed_df.to_csv("plot.csv", index=False)
+df = df.with_columns(pl.col("workload").replace(workload_mapping))
+df = df.with_columns(pl.col("system").replace(system_mapping))
 
-        g = sns.catplot(
-            data=preprocessed_df, kind="bar",
-            x="level", y="speedup", hue="workload",
-            palette="dark", alpha=.6, height=6
-        )
+df = df.group_by(
+    ["workload", "level", "frequency"], maintain_order=True
+).agg(pl.col("ticks").map_elements(calc_speedup).alias("speedup"))
 
-        g.despine(left=True)
-        g.set_axis_labels("", "Speedup")
-        g.set(title=frequency)
-        g.legend.set_title("")
+for name, data in df.group_by(
+    "frequency",
+    pl.when(pl.col("workload").is_in(workload_sets["vector"]))
+    .then(pl.lit("vector"))
+    .when(pl.col("workload").is_in(workload_sets["matrix"]))
+    .then(pl.lit("matrix")),
+):
+    plot = sns.catplot(
+        data=data.to_pandas(),
+        kind="bar",
+        x="level",
+        y="speedup",
+        hue="workload",
+        palette="dark",
+        alpha=0.6,
+        height=6,
+    )
+    plot.set_axis_labels("Level", "Speedup")
+    plot.set(title=name[0] + name[1])
 
-        for workload in workload_set:
-            export_df = preprocessed_df[preprocessed_df["workload"] == workload]
+    plot.fig.subplots_adjust(top=0.95)
 
-            filename = f"{workload}_{frequency}.csv"
-            directory = Path("plots_out")
-            export_df.to_csv(directory / filename, index=False)
+    data = data.pivot(index=["level"], columns=["workload"], values=["speedup"])
+    print(data)
+
+    data.write_csv(out_directory / f"{name[1]}_{name[0]}.csv")
 
 plt.show()
